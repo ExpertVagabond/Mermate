@@ -9,6 +9,7 @@ const { route, renderPrepare, renderHPCGoT, renderMaxUpgrade, decomposeAndRender
 const enhancerBridge = require('../services/gpt-enhancer-bridge');
 const provider = require('../services/inference-provider');
 const visualProvider = require('../services/visual-provider');
+const codeTranslator = require('../services/code-translator');
 const { buildPrompt } = require('../services/axiom-prompts');
 const { analyze } = require('../services/input-analyzer');
 const { deriveDiagramName } = require('../utils/naming');
@@ -661,6 +662,61 @@ router.patch('/diagrams/:name', async (req, res) => {
     });
   } catch (err) {
     logger.error('diagram.rename.error', { oldName, newName, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/translate/targets
+ * Returns available code translation targets (TLA+, TSX, Rust).
+ */
+router.get('/translate/targets', (_req, res) => {
+  return res.json({
+    success: true,
+    targets: codeTranslator.getTargets(),
+  });
+});
+
+/**
+ * POST /api/translate
+ * Translate a Mermaid diagram into TLA+, TSX, or Rust source code.
+ * Body: { mermaid_source: string, target: 'tla+' | 'tsx' | 'rust', description?: string, facts?: object, max_mode?: boolean }
+ */
+router.post('/translate', async (req, res) => {
+  const { mermaid_source, target, description, facts, max_mode } = req.body || {};
+
+  if (!mermaid_source || typeof mermaid_source !== 'string' || !mermaid_source.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: 'missing_source',
+      details: 'mermaid_source is required',
+    });
+  }
+
+  if (!target || typeof target !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: 'missing_target',
+      details: 'target is required. Supported: tla+, tsx, rust',
+    });
+  }
+
+  try {
+    const result = await codeTranslator.translate({
+      mmdSource: mermaid_source.trim(),
+      target: target.trim(),
+      description: description || null,
+      facts: facts || null,
+      maxMode: !!max_mode,
+    });
+
+    if (!result.success) {
+      return res.status(422).json(result);
+    }
+
+    return res.json(result);
+  } catch (err) {
+    logger.error('translate.route.error', { target, error: err.message });
     return res.status(500).json({ success: false, error: err.message });
   }
 });
