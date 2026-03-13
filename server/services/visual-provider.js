@@ -4,14 +4,15 @@
  * Visual Provider — Gemini Image Generation layer for Mermate.
  *
  * After Mermate compiles a Mermaid diagram (structural/logical), this service
- * optionally generates a polished, presentation-quality visual version using
- * Google's Gemini image generation API (the engine behind nanobanana).
+ * generates a polished, presentation-quality visual version.
  *
- * The visual layer turns technical Mermaid diagrams into beautiful architecture
- * visuals suitable for pitch decks, grant applications, and documentation.
+ * Two paths for visual generation:
+ *   1. Direct Gemini API (fallback) — uses gemini-2.0-flash-exp for image gen
+ *   2. Nanobanana MCP (preferred) — use model_tier='pro' for Gemini 3 Pro Image
+ *      Call nanobanana's generate_image tool from Claude Code for best quality.
  *
  * Environment variables:
- *   GEMINI_API_KEY          - Google AI Studio API key (required)
+ *   GEMINI_API_KEY          - Google AI Studio API key (required for direct path)
  *   GEMINI_VISUAL_MODEL     - Model ID (default: gemini-2.0-flash-exp)
  *   GEMINI_VISUAL_STYLE     - Default style preset (default: tech-dark)
  */
@@ -21,7 +22,7 @@ const path = require('node:path');
 const logger = require('../utils/logger');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_VISUAL_MODEL || 'gemini-2.0-flash-exp';
+const GEMINI_MODEL = process.env.GEMINI_VISUAL_MODEL || 'gemini-2.5-flash-preview-05-20';
 const DEFAULT_STYLE = process.env.GEMINI_VISUAL_STYLE || 'tech-dark';
 const VISUAL_TIMEOUT_MS = parseInt(process.env.GEMINI_VISUAL_TIMEOUT || '120000', 10);
 
