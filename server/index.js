@@ -83,10 +83,10 @@ app.use(express.static(path.join(PROJECT_ROOT, 'public'), {
 }));
 
 // Static files: compiled diagram outputs
-app.use('/flows', express.static(path.join(PROJECT_ROOT, 'flows')));
+app.use('/flows', express.static(path.join(PROJECT_ROOT, 'flows'), { dotfiles: 'deny' }));
 
 // Static files: archived sources (read-only serving)
-app.use('/archs', express.static(path.join(PROJECT_ROOT, 'archs')));
+app.use('/archs', express.static(path.join(PROJECT_ROOT, 'archs'), { dotfiles: 'deny' }));
 
 // Frontend vendor modules
 app.use('/vendor/three', express.static(path.join(PROJECT_ROOT, 'node_modules', 'three')));
