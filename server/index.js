@@ -1,5 +1,17 @@
 'use strict';
 
+/**
+ * Mermate — Mermaid diagram server
+ *
+ * Security:
+ *  - Security headers (CSP, HSTS, X-Frame-Options, etc.)
+ *  - Request body size limits
+ *  - Input validation on all API endpoints
+ *  - Path traversal prevention on static serving
+ *  - Rate limiting on API routes
+ *  - No sensitive data in error responses
+ */
+
 require('dotenv').config({ path: require('node:path').resolve(__dirname, '..', '.env') });
 
 const express = require('express');
@@ -9,6 +21,47 @@ const logger = require('./utils/logger');
 const app = express();
 const PORT = parseInt(process.env.PORT || '3333', 10);
 const PROJECT_ROOT = path.resolve(__dirname, '..');
+
+// --- Security: validate PORT ---
+if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+  console.error('[mermate] Invalid PORT value');
+  process.exit(1);
+}
+
+// --- Security: HTTP headers ---
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self';"
+  );
+  next();
+});
+
+// --- Security: rate limiter (simple in-memory) ---
+const _rateMap = new Map();
+const RATE_WINDOW = 60_000; // 1 minute
+const RATE_MAX = 120; // requests per window
+app.use('/api', (req, res, next) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = _rateMap.get(ip) || { count: 0, resetAt: now + RATE_WINDOW };
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + RATE_WINDOW;
+  }
+  entry.count++;
+  _rateMap.set(ip, entry);
+  if (entry.count > RATE_MAX) {
+    res.status(429).json({ error: 'Rate limit exceeded' });
+    return;
+  }
+  next();
+});
 
 // Body parsing
 app.use(express.json({ limit: '2mb' }));
@@ -20,6 +73,7 @@ app.use(express.static(path.join(PROJECT_ROOT, 'public'), {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
   },
+  dotfiles: 'deny',
 }));
 
 // Static files: compiled diagram outputs
