@@ -63,6 +63,12 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// --- Security: error sanitizer ---
+function sanitizeError(err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.split('\n')[0].slice(0, 500);
+}
+
 // Body parsing
 app.use(express.json({ limit: '2mb' }));
 
@@ -92,6 +98,12 @@ const transcribeRouter = require('./routes/transcribe');
 app.use('/api', renderRouter);
 app.use('/api', agentRouter);
 app.use('/api', transcribeRouter);
+
+// --- Security: global error handler (must be AFTER routes) ---
+app.use((err, _req, res, _next) => {
+  logger.error('unhandled_error', { error: sanitizeError(err) });
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 // Start server only when run directly (not imported by tests)
 if (require.main === module) {
