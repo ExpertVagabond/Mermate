@@ -521,7 +521,7 @@ router.post('/render', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'internal_error',
-      details: err.message,
+      details: 'An internal error occurred while rendering the diagram',
     });
   }
 });
@@ -562,7 +562,7 @@ router.get('/diagrams', async (_req, res) => {
     return res.json({ success: true, diagrams });
   } catch (err) {
     logger.error('diagrams.list.error', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to list diagrams' });
   }
 });
 
@@ -595,7 +595,7 @@ router.delete('/diagrams/:name', async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     logger.error('diagram.delete.error', { name, error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to delete diagram' });
   }
 });
 
@@ -614,6 +614,9 @@ router.patch('/diagrams/:name', async (req, res) => {
   }
 
   const { slugify } = require('../utils/naming');
+  if (newNameRaw.length > 200) {
+    return res.status(400).json({ success: false, error: 'new_name too long (max 200 chars)' });
+  }
   const newName = slugify(newNameRaw.trim());
   if (!newName || newName.length < 2) {
     return res.status(400).json({ success: false, error: 'new_name too short' });
@@ -662,7 +665,7 @@ router.patch('/diagrams/:name', async (req, res) => {
     });
   } catch (err) {
     logger.error('diagram.rename.error', { oldName, newName, error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to rename diagram' });
   }
 });
 
@@ -717,7 +720,7 @@ router.post('/translate', async (req, res) => {
     return res.json(result);
   } catch (err) {
     logger.error('translate.route.error', { target, error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Translation failed' });
   }
 });
 

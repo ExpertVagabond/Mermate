@@ -76,7 +76,7 @@ router.post('/transcribe', upload.single('audio'), async (req, res) => {
     if (err.name === 'AbortError') {
       return res.status(504).json({ success: false, error: 'timeout', details: 'Transcription timed out.' });
     }
-    return res.status(500).json({ success: false, error: 'internal_error', details: err.message });
+    return res.status(500).json({ success: false, error: 'internal_error', details: 'An internal error occurred during transcription' });
   }
 });
 
