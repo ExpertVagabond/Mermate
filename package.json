@@ -1,5 +1,6 @@
 {
   "name": "mermaid-gpt",
+  "author": "Matthew Karsten <matthewkarstenconnects@gmail.com>",
   "version": "1.0.0",
   "description": "Local Mermaid diagram renderer with chat-style UI and optional GPT enhancement",
   "main": "server/index.js",
